@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "OcrDemo",
+    "slug": "OcrDemo",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
