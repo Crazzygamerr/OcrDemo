@@ -1,95 +1,61 @@
 // import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
-	Animated, Button, Image, PanResponder, ScrollView, StyleSheet,
+	Animated,
+	Image,
+	PanResponder,
 	Text,
-	View
+	View,
+	StyleSheet,
+	TouchableWithoutFeedback,
+	useWindowDimensions
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { Icon } from 'react-native-elements';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import RNFetchBlob from 'rn-fetch-blob';
 
-// import RNTextDetector from 'rn-text-detector';
-// import TesseractOcr, {
-//   LANG_ENGLISH,
-// } from 'react-native-tesseract-ocr';
-// import TextRecognition from 'react-native-text-recognition';
-// import { RNCamera } from 'react-native-camera';
-// import MlkitOcr from 'react-native-mlkit-ocr';
-
 export default function App() {
-	const [result, setResult] = React.useState(null);
+	const [prediction, setPrediction] = React.useState(null);
 	const [resultImage, setResultImage] = React.useState(null);
 	const [form, setForm] = React.useState(null);
 	const [dimensions, setDimensions] = React.useState(null);
-	// const offset = useSharedValue({ x: 0, y: 0 });
-
-	// const dragGesture = Gesture.Pan()
-	// 	.onUpdate((e) => {
-	// 		console.log('start');
-	// 		test.value = e.translationX;
-	// 		// offset.value = {
-	// 		// 	x: e.translationX,
-	// 		// 	y: e.translationY
-	// 		// };
-	// 	});
-
-	// const animatedStyles = useAnimatedStyle(() => {
-	// 	return {
-	// 		// transform: [{ translateX: offset.value.x }, { translateY: offset.value.y }],
-	// 		transform: [{ translateX: test.value}]
-	// 	};
-	// });
 
 	const [start, setStart] = React.useState({ x: 0, y: 0 });
 	const [end, setEnd] = React.useState({ x: 0, y: 0 });
-	// const start = React.useRef(new Animated.ValueXY({x: 0, y: 0}));
-	// const end = React.useRef(new Animated.ValueXY({ x: 200, y: 200 }));
-
-	// const start = React.useRef(new Animated.ValueXY()).current;
-	// const end = React.useRef(new Animated.ValueXY()).current;
+	
+	const imageWidth = 300, imageHeight = 300;
+	const { width, height } = useWindowDimensions();
+	
+	function vw(
+		percentageWidth = 100
+		// , { subtractPx = 0, addPx = 0 } = {}
+	) {
+		return (width * percentageWidth) / 100;
+		// return (width * percentageWidth / 100) - subtractPx + addPx;
+	}
+	function vh(
+		percentageHeight = 100
+		// , { subtractPx = 0, addPx = 0 } = {}
+	) {
+		return (height * percentageHeight) / 100;
+		// return (height * percentageHeight / 100) - subtractPx + addPx;
+	}
+	
 	const panResponder = React.useRef(
 		PanResponder.create({
 			onMoveShouldSetPanResponder: () => true,
 			onStartShouldSetPanResponder: () => true,
-			onPanResponderStart: (e, gestureState) => {
-				// start.setValue({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-				// end.setValue({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
+			onPanResponderStart: (e) => {
 				setStart({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
 				setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
 			},
 			onPanResponderMove: (e) => {
 				setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-				// end.setValue({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-				// Animated.event(
-				// 	[
-				// 		{
-				// 			nativeEvent: {
-				// 				translationX: pan.x,
-				// 				translationY: pan.y
-				// 			}
-				// 		}
-				// 	],
-				// 	{ useNativeDriver: true }
-				// );
 			},
 			onPanResponderRelease: (e) => {
-				// end.setValue({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
 				setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
 			}
-		},
-
-		)).current;
-	// pan.addListener(({ x, y }) => {
-	// 	console.log(x, y);
-	// });
-
-	// function ip(value) {
-	// 	return value.interpolate({
-	// 		inputRange: [0, 200],
-	// 		outputRange: [0, 200],
-	// 		extrapolate: 'clamp'
-	// 	});
-	// }
+		})).current;
 
 	function boxAttr(start, end, returnJson = false) {
 		start.x = start.x < 0 ? 0 : start.x;
@@ -97,22 +63,22 @@ export default function App() {
 		end.x = end.x < 0 ? 0 : end.x;
 		end.y = end.y < 0 ? 0 : end.y;
 
-		start.x = start.x > 200 ? 200 : start.x;
-		start.y = start.y > 200 ? 200 : start.y;
-		end.x = end.x > 200 ? 200 : end.x;
-		end.y = end.y > 200 ? 200 : end.y;
+		start.x = start.x > imageWidth ? imageWidth : start.x;
+		start.y = start.y > imageHeight ? imageHeight : start.y;
+		end.x = end.x > imageWidth ? imageWidth : end.x;
+		end.y = end.y > imageHeight ? imageHeight : end.y;
 
 		if (returnJson) {
 			if (!dimensions || (start.x === 0 && start.y === 0 && end.x === 0 && end.y === 0)) {
 				return {};
 			}
 			const scaledStart = {
-				x: start.x / 200 * dimensions.width,
-				y: start.y / 200 * dimensions.height
+				x: start.x / imageWidth * dimensions.width,
+				y: start.y / imageHeight * dimensions.height
 			};
 			const scaledEnd = {
-				x: end.x / 200 * dimensions.width,
-				y: end.y / 200 * dimensions.height
+				x: end.x / imageWidth * dimensions.width,
+				y: end.y / imageHeight * dimensions.height
 			};
 
 			return {
@@ -131,147 +97,163 @@ export default function App() {
 			};
 		}
 	}
+	
+	function setImage(response) {
+		if (response.didCancel || response.error) {
+			setForm(null);
+			setPrediction(null);
+			setResultImage(null);
+			setDimensions(null);
+			setStart({ x: 0, y: 0 });
+			setEnd({ x: 0, y: 0 });
+			return;
+		}
+		const temp = new FormData();
+		temp.append("file", {
+			name: response.assets[0].fileName,
+			type: response.assets[0].type,
+			uri: response.assets[0].uri,
+		});
+		setDimensions({
+			width: response.assets[0].width,
+			height: response.assets[0].height,
+		});
+		setForm(temp);
+		setPrediction(null);
+		setResultImage(null);
+		setStart({ x: 0, y: 0 });
+		setEnd({ x: 0, y: 0 });
+	}
+	
+	function predict() {
+		setPrediction(null);
+		setResultImage(null);
+			
+		let temp = form;
+		const attr = boxAttr(start, end, true);								
+		if (attr.x) {
+			temp.append("crop", JSON.stringify(attr));
+		}
+			
+		fetch("http://localhost:8000/object-to-json", {
+			method: "POST",
+			body: temp,
+		}).then(async (response) => {
+			const result = await response.json();
+			getPrediction(JSON.stringify(result));
+		}).catch((error) => {
+			console.log(error);
+		});
+			
+		let imgRequest = [];
+		imgRequest.push({
+			name: 'file',
+			filename: form.getParts().find(item => item.fieldName === 'file').name,
+			data: RNFetchBlob.wrap(form.getParts().find(item => item.fieldName === 'file').uri)
+		});
+		if (attr.x) {
+			imgRequest.push({
+				name: 'crop',
+				data: (attr.x) ? JSON.stringify(attr) : null,
+			});
+		}
+		RNFetchBlob
+			.config({
+				fileCache: true,
+				appendExt: form.getParts().find(item => item.fieldName === 'file').name.split('.').pop(),
+			})
+			.fetch('POST', 'http://localhost:8000/object-to-img', {},imgRequest)
+			.then(async (res) => {
+				setResultImage("file://" + res.path());
+			})
+			.catch((err) => {
+				console.log(err);
+			});
+	}
+	
+	function getPrediction(result) {
+		if (result) {
+			const resultDict = JSON.parse(result)["result"];
+			
+			const sortedResultDict = resultDict.sort((a, b) => {
+				return a.xmin - b.xmin;
+			});
+			
+			const digits = sortedResultDict.map((item) => {
+				return item.name;
+			});
+			setPrediction(digits);
+		}
+	}
 
 	return (
-		<ScrollView>
-			<View style={styles.container}>
-				<Text>Ocr Demo</Text>
-				<Button
-					title="Pick image"
+		<View style={styles.container()}>
+			<View style={styles.imageButtonBox(!form)}>
+				<TouchableWithoutFeedback
 					onPress={() => {
 						launchImageLibrary({}, (response) => {
-							if (response.didCancel || response.error) {
-								setForm(null);
-								setResult(null);
-								setResultImage(null);
-								setDimensions(null);
-								setStart({ x: 0, y: 0 });
-								setEnd({ x: 0, y: 0 });
-								return;
-							}
-							const temp = new FormData();
-							temp.append("file", {
-								name: response.assets[0].fileName,
-								type: response.assets[0].type,
-								uri: response.assets[0].uri,
-							});
-							setDimensions({
-								width: response.assets[0].width,
-								height: response.assets[0].height,
-							});
-							setForm(temp);
-							setResult(null);
-							setResultImage(null);
-							setStart({ x: 0, y: 0 });
-							setEnd({ x: 0, y: 0 });
+							setImage(response);
 						});
-					}}
-				/>
+					}}>
+					<View style={styles.imageButton}>
+						<Icon name="photo-library" type="material" color="black" size={50} />
+						<Text>Pick image</Text>
+					</View>
+				</TouchableWithoutFeedback>
+				<TouchableWithoutFeedback
+					onPress={() => {
+						launchCamera({}, (response) => {
+							setImage(response);
+						});
+					}}>
+					<View style={styles.imageButton}>
+						<Icon name="photo-camera" type="material" color="black" size={50} />
+						<Text>Take photo</Text>
+					
+					</View>
+				</TouchableWithoutFeedback>
+			</View>
 
-				{/* <Animated.View style={{
-						// position: 'absolute',
-							width: 200,
-							height: 200,
-							backgroundColor: 'grey',
-						}}>
-					<GestureDetector gesture={dragGesture}>
-								<View
-									style={[animatedStyles, {
-										// position: 'absolute',
-										width: "30%",
-										height: "30%",
-										backgroundColor: 'red',
-									}]}
-									// style={{
-										// 	position: 'absolute',
-										// 	zIndex: 2,
-										// 	// get the coordinates of the box
-										// 	// left: start.current.x,
-										// 	// top: start.current.y,
-										// 	// width: end.current.x - start.current.x,
-										// 	// height: end.current.y - start.current.y,
-										// 	backgroundColor: "red",
-										// }}
-										/>
-							</GestureDetector>
-				</Animated.View> */}
-
+			<View style={{
+				width: '100%',
+				height: '100%',
+				flex: 1,
+				display: form ? 'flex' : 'none',
+				alignItems: "center",
+				justifyContent: "center",
+			}}>
 				<View style={{
-					flex: 1,
-					alignItems: "center",
-					justifyContent: "center",
-					width: 200,
-					height: 200,
+					width: imageWidth,
+					height: imageHeight,
 					zIndex: 3,
-					// backgroundColor: "red",
+					position: "absolute",
+					marginVertical: "auto",
 				}}>
 					<Animated.View
-						style={{
-							// transform: [{ translateX: pan.x }, { translateY: pan.y }],
-						}}
 						{...panResponder.panHandlers}
 					>
 						<View style={{
-							height: 200,
-							width: 200,
+							height: imageHeight,
+							width: imageWidth,
 							backgroundColor: "transparent"
 						}} />
 					</Animated.View>
 				</View>
-
-				{form && <Text>{form.getParts().find(item => item.fieldName === 'file').name}</Text>}
-				{form &&
+				
+				{form && !prediction && 
 					<View
-						// onStartShouldSetResponder={() => true}
-						// onResponderGrant={(e) => {
-						// 	setStart({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-						// 	setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-						// }}
-						// onTouchMove={(e) => {
-						// setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-						// Animated.event([
-						// 	null,
-						// 	{ dx: pan.x, dy: pan.y }
-						// ], { useNativeDriver: true });
-						// }}
-						// onResponderMove={(e) => {
-						// 	setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-						// }}
-						// onResponderRelease={(e) => {
-						// 	setEnd({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
-						// }}
 						style={{
-							width: 200,
-							height: 200,
+							width: imageWidth,
+							height: imageHeight,
 							position: "absolute",
-							top: 70,
-						}}
-
-					>
+							marginVertical: "auto",
+						}}>
 						<Animated.View
 							style={[
 								boxAttr(start, end, false),
 								{
 									position: 'absolute',
 									zIndex: 2,
-									// left: end.x,
-									// top: end.y,
-
-									// left: ip(start.x) > ip(end.x) ? ip(end.x) : ip(start.x),
-									// top: ip(start.y) > ip(end.y) ? ip(end.y) : ip(start.y),
-
-									// left: start.x > end.x ? end.x : start.x,
-									// top: start.y > end.y ? end.y : start.y,
-									// width: Math.abs(end.x - start.x),
-									// height: Math.abs(end.y - start.y),
-
-									// transform: [
-									// 	{ translateX: start.x },
-									// 	{ translateY: start.y },
-									// 	{ scale: scale },
-									// ],
-									// width: "10%",
-									// height: "10%",
 									backgroundColor: "black",
 									opacity: 0.5,
 								}
@@ -281,129 +263,169 @@ export default function App() {
 							source={{
 								uri: form.getParts().find(item => item.fieldName === 'file').uri,
 							}}
-							resizeMode="contain"
-							style={{ width: 200, height: 200 }}
+							resizeMode="cover"
+							style={{
+								width: imageWidth,
+								height: imageHeight
+							}}
 						/>
 					</View>
 				}
-				{/* <Text>{"start: " + start.x.toPrecision(4) + " : " + start.y.toPrecision(4)}</Text>
-				<Text>{"end: " + end.x.toPrecision(4) + " : " + end.y.toPrecision(4)}</Text> */}
-				<Text>
-					{"x: " + (start.x > end.x ? end.x : start.x).toPrecision(2)
-						+ " y: " + (start.y > end.y ? end.y : start.y).toPrecision(2)}
-				</Text>
-				<Text>
-					{"w: " + Math.abs(end.x - start.x).toPrecision(2)
-						+ " h: " + Math.abs(end.y - start.y).toPrecision(2)}
-				</Text>
-				{/* <Text>
-					{(boxAttr(start, end, true).x) ? "true" : "false" + " " + start.x}
-				</Text>
-				<Button title="Submit" onPress={() => {
-					console.log(JSON.stringify(boxAttr(start, end, true)));
-				}}
-				/> */}
+			</View>
 				
-				{form &&
-					<Button
-						title="Predict"
+			{form && !prediction &&
+				<View
+					style={{
+						display: "flex",
+						flexDirection: "row",
+						justifyContent: "space-between",
+					}}>
+					<TouchableWithoutFeedback
 						onPress={() => {
-							setResult(null);
+							setForm(null);
+							setPrediction(null);
 							setResultImage(null);
-							
-							let temp = form;
-							const attr = boxAttr(start, end, true);								
-							if (attr.x) {
-								temp.append("crop", JSON.stringify(attr));
-							}
-							
-							fetch("http://localhost:8000/object-to-json", {
-								method: "POST",
-								body: temp,
-							}).then(async (response) => {
-								const result = await response.json();
-								setResult(JSON.stringify(result, null, 2));
-							}).catch((error) => {
-								console.log(error);
-							});
-							
-							let imgRequest = [];
-							imgRequest.push({
-								name: 'file',
-								filename: form.getParts().find(item => item.fieldName === 'file').name,
-								data: RNFetchBlob.wrap(form.getParts().find(item => item.fieldName === 'file').uri)
-							});
-							if (attr.x) {
-								imgRequest.push({
-									name: 'crop',
-									data: (attr.x) ? JSON.stringify(attr) : null,
-								});
-							}
-							RNFetchBlob
-								.config({
-									fileCache: true,
-									appendExt: form.getParts().find(item => item.fieldName === 'file').name.split('.').pop(),
-								})
-								.fetch('POST', 'http://localhost:8000/object-to-img', {},imgRequest)
-								.then(async (res) => {
-									setResultImage("file://" + res.path());
-								})
-								.catch((err) => {
-									console.log(err);
-								});
-						}}
-					/>
-				}
-				{resultImage &&
+							setDimensions(null);
+							setStart({ x: 0, y: 0 });
+							setEnd({ x: 0, y: 0 });
+						}}>
+						<View
+							style={[
+								{
+									width: vw(45),
+									borderColor: "#330963",
+									borderWidth: 1,
+								},
+								styles.buttton,
+							]}>
+							<Text style={{
+								color: "#330963",
+								fontSize: vw(5),
+							}}>
+								Cancel</Text>
+						</View>
+					</TouchableWithoutFeedback>
+					<TouchableWithoutFeedback
+						onPress={() => {
+							predict();
+						}}>
+						<View
+							style={[
+								{
+									width: vw(45),
+									backgroundColor: "#330963",
+								},
+								styles.buttton,
+							]}>
+							<Text style={{
+								color: "white",
+								fontSize: vw(5),
+							}}>
+								Predict</Text>
+						</View>
+					</TouchableWithoutFeedback>
+				</View>
+			}
+			{resultImage &&
+				<View style={{
+					width: '100%',
+					height: '100%',
+					paddingTop: vh(20),
+					alignItems: "center",
+					justifyContent: "space-between",
+				}}>
 					<Image
 						source={{
 							uri: resultImage,
 						}}
-						resizeMode="contain"
+						resizeMode="cover"
 						style={{
-							width: 200,
-							height: 200
+							width: imageWidth,
+							height: imageHeight
 						}}
-					/>}
-				{/* {result && <Text>{resultImage}</Text>} */}
-				{result && <Text>{result}</Text>}
-				{/* <Button
-					title="Launch Camera"
-					onPress={() => {
-						launchCamera({}, async (response) => {
-							const rnText = await RNTextDetector.detectFromUri(response.assets[0].uri);
-							// const tesseract = await TesseractOcr.recognize(response.assets[0].uri, LANG_ENGLISH, {});
-							const textRecog = await TextRecognition.recognize(response.assets[0].uri);
-							// const resultFromUri = await MlkitOcr.detectFromUri(uri);
-					
-							console.log(rnText);
-							console.log(textRecog);
-							// console.log(resultFromUri);
-					
-							// RNTextDetector.detectFromUri(response.assets[0].uri, (textRecognition) => {
-							// 	console.log(textRecognition);
-							// 	// setState({ ...state, loading: false, image: response.uri, textRecognition });
-							// });
-						});
-				}} /> */}
-				{/* <Text>{ state.textRecognition }</Text> */}
-				{/* <RNCamera
-					onTextRecognized={(textRecognition) => {
-						console.log(textRecognition);
-					}}
-				></RNCamera> */}
-			</View>
-		</ScrollView>
+					/>
+					<Text style={{
+						fontSize: vw(5),
+					}}>
+						{"Prediction: " + prediction.map(item => item).join("")}
+					</Text>
+					<TouchableWithoutFeedback
+						onPress={() => {
+							setForm(null);
+							setPrediction(null);
+							setResultImage(null);
+							setDimensions(null);
+							setStart({ x: 0, y: 0 });
+							setEnd({ x: 0, y: 0 });
+						}}>
+						<View
+							style={[
+								{
+									width: vw(90),
+									backgroundColor: "#330963",
+								},
+								styles.buttton,
+							]}>
+							<Text style={{
+								color: "#fff",
+								fontSize: vw(5),
+							}}>
+								Close</Text>
+						</View>
+					</TouchableWithoutFeedback>
+				</View>
+			}
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: {
-		width: "100%",
-		flex: 1,
-		padding: 10,
-		alignItems: 'center',
-		justifyContent: 'center',
-		backgroundColor: '#fff',
+	container: () => {
+		return {
+			width: "100%",
+			height: "100%",
+			display: "flex",
+			padding: 10,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: '#f8f8f8',
+		};
 	},
+	
+	imageButtonBox: (visible) => {
+		const display = visible ? "flex" : "none";
+		return {
+			width: "100%",
+			height: "100%",
+			display: display,
+			alignItems: "center",
+			justifyContent: "center",
+		};
+	},
+	
+	imageButton: {
+		// width: "80%",
+		// height: "20%",
+		marginTop: "10%",
+		paddingHorizontal: "30%",
+		paddingVertical: "15%",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: '#fff',
+		borderRadius: 10,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.8,
+		shadowRadius: 2,
+		elevation: 5,
+	},
+	
+	buttton: {
+		padding: 10,
+		display: "flex",
+		alignItems: "center",
+		margin: 10,
+		borderRadius: 15,
+	}
 });
