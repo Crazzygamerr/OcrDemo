@@ -176,13 +176,13 @@ export default function App() {
 			const resultDict = JSON.parse(result)["result"];
 			
 			const sortedResultDict = resultDict.sort((a, b) => {
-				return a.xmin - b.xmin;
+				return (a.xmin + a.xmax)/2 - (b.xmin + b.xmax)/2;
 			});
 			
 			const digits = sortedResultDict.map((item) => {
 				return item.name;
 			});
-			setPrediction(digits);
+			setPrediction(digits.join(''));
 		}
 	}
 
@@ -347,7 +347,7 @@ export default function App() {
 					<Text style={{
 						fontSize: vw(5),
 					}}>
-						{"Prediction: " + prediction.map(item => item).join("")}
+						{"Prediction: " + prediction}
 					</Text>
 					<TouchableWithoutFeedback
 						onPress={() => {
